@@ -840,6 +840,104 @@
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Category select in translate panel ──────────────── */
+    .tp-cat-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .tp-cat-label {
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-3);
+      white-space: nowrap;
+    }
+
+    .tp-cat-select {
+      flex: 1;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 6px 10px;
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--text);
+      background: var(--bg);
+      outline: none;
+      cursor: pointer;
+      transition: border-color 0.18s;
+    }
+
+    .tp-cat-select:focus { border-color: var(--green-mid); }
+
+    /* ── Save status row ─────────────────────────────────── */
+    .tp-save-status {
+      display: none;
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 12px;
+      border-radius: 8px;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .tp-save-status.saving {
+      display: flex;
+      background: var(--yellow-light);
+      color: var(--yellow-dark);
+    }
+
+    .tp-save-status.success {
+      display: flex;
+      background: #E8F5E9;
+      color: #1B5E20;
+    }
+
+    .tp-save-status.error {
+      display: flex;
+      background: #FFF0F0;
+      color: #B71C1C;
+    }
+
+    .save-spinner {
+      width: 12px;
+      height: 12px;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-top-color: var(--yellow-dark);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    /* ── Toast ───────────────────────────────────────────── */
+    .toast {
+      position: fixed;
+      bottom: 140px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: var(--green);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: 24px;
+      box-shadow: 0 6px 24px rgba(28,102,71,0.35);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+      z-index: 999;
+      white-space: nowrap;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
   </style>
 </head>
 <body>
@@ -898,15 +996,22 @@
 <!-- ═══════════════ TRANSLATE PANEL ═══════════════ -->
 <div class="translate-panel">
   <div class="tp-inner">
-    <div class="tp-label">🤖 AI リアルタイム翻訳（JP → KR · TW）</div>
+    <div class="tp-label">🤖 AI 翻訳 &amp; 自動保存（JP → KR · TW）</div>
+    <div class="tp-cat-row">
+      <span class="tp-cat-label">📂 カテゴリ</span>
+      <select class="tp-cat-select" id="tpCategory">
+        <option value="">— 未分類 —</option>
+      </select>
+    </div>
     <div class="tp-input-row">
       <input class="tp-input" id="tpInput" type="text"
-             placeholder="日本語を入力して翻訳..." autocomplete="off" />
+             placeholder="日本語を入力 → 翻訳してDBに保存..." autocomplete="off" />
       <button class="tp-btn" id="tpBtn">
-        <span class="tp-ico">✨ 翻訳</span>
+        <span class="tp-ico">✨ 翻訳 &amp; 保存</span>
         <span class="tp-spinner"></span>
       </button>
     </div>
+    <div class="tp-save-status" id="tpSaveStatus"></div>
     <div class="tp-error" id="tpError"></div>
     <div class="tp-results" id="tpResults">
       <div class="tp-result-card">
@@ -928,6 +1033,9 @@
     </div>
   </div>
 </div>
+
+<!-- ═══════════════ TOAST ═══════════════ -->
+<div class="toast" id="toast"></div>
 
 <!-- ═══════════════ CONFIG MODAL ═══════════════ -->
 <div class="overlay" id="configOverlay">
@@ -1037,6 +1145,18 @@ function buildCatBar() {
     const label = [cat.icon, cat.name].filter(Boolean).join(' ');
     list.appendChild(makeBtn(cat.id, label, activeCat === cat.id));
   });
+
+  // 翻訳パネルのカテゴリ選択も同期
+  const sel = document.getElementById('tpCategory');
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— 未分類 —</option>';
+  categories.forEach(cat => {
+    const opt = document.createElement('option');
+    opt.value = cat.id;
+    opt.textContent = [cat.icon, cat.name].filter(Boolean).join(' ');
+    sel.appendChild(opt);
+  });
+  sel.value = prev;
 }
 
 function makeBtn(id, label, isActive) {
@@ -1426,13 +1546,19 @@ async function runTranslate() {
     showTpError('OpenAI API キーが設定されていません。⚙️ 接続 から設定してください。');
     return;
   }
+  if (!sb) {
+    showTpError('Supabase に接続されていません。⚙️ 接続 から設定してください。');
+    return;
+  }
 
   tpBtn.classList.add('loading');
   tpBtn.disabled = true;
   tpError.style.display = 'none';
   tpResults.classList.remove('visible');
+  setSaveStatus('');
 
   try {
+    /* ── Step 1: AI翻訳（フルスペック） ── */
     const res = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -1440,14 +1566,31 @@ async function runTranslate() {
         'Authorization': 'Bearer ' + apiKey
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'gpt-4o',
         temperature: 0.3,
         messages: [
           {
             role: 'system',
             content: `あなたは日本語→韓国語・台湾華語の翻訳専門家です。
-以下のJSON形式のみで返答してください（説明文・コードブロック不要）:
-{"ko":"韓国語訳","ko_phonetic":"カタカナ読み","tw":"台湾華語訳","tw_phonetic":"ピンイン"}`
+以下のJSON形式のみで返答してください（コードブロック・前置き・説明文は一切不要）:
+{
+  "ko": "韓国語訳（ヘヨ体で自然な表現）",
+  "ko_phonetic": "発音を自然なカタカナで（例：アンニョンハセヨ）",
+  "tw": "台湾華語訳（繁体字）",
+  "tw_phonetic": "正確なピンイン（声調記号あり、例：nǐ hǎo）",
+  "words_ko": [
+    {"word": "重要単語1（韓国語）", "meaning": "日本語での意味"},
+    {"word": "重要単語2（韓国語）", "meaning": "日本語での意味"},
+    {"word": "重要単語3（韓国語）", "meaning": "日本語での意味"}
+  ],
+  "words_tw": [
+    {"word": "重要単語1（繁体字）", "meaning": "日本語での意味"},
+    {"word": "重要単語2（繁体字）", "meaning": "日本語での意味"},
+    {"word": "重要単語3（繁体字）", "meaning": "日本語での意味"}
+  ],
+  "explanation": "韓国語フレーズの自然さ・文化的ニュアンス・シーン別の使いどころを日本語で解説",
+  "explanation_tw": "台湾華語フレーズの自然さ・文化的ニュアンス・シーン別の使いどころを日本語で解説"
+}`
           },
           { role: 'user', content: text }
         ]
@@ -1467,17 +1610,46 @@ async function runTranslate() {
       const jsonStr = raw.match(/\{[\s\S]*\}/)?.[0] || raw;
       parsed = JSON.parse(jsonStr);
     } catch {
-      throw new Error('レスポンスの解析に失敗しました。');
+      throw new Error('AIレスポンスの解析に失敗しました。');
     }
 
+    /* ── Step 2: プレビュー表示 ── */
     document.getElementById('tpKo').textContent         = parsed.ko         || '—';
     document.getElementById('tpKoPhonetic').textContent = parsed.ko_phonetic || '';
     document.getElementById('tpTw').textContent         = parsed.tw         || '—';
     document.getElementById('tpTwPhonetic').textContent = parsed.tw_phonetic || '';
     tpResults.classList.add('visible');
 
+    /* ── Step 3: Supabase に保存 ── */
+    setSaveStatus('saving', '保存中...');
+
+    const catId = document.getElementById('tpCategory').value || null;
+
+    const record = {
+      japanese:       text,
+      korean:         parsed.ko          || '',
+      ipa:            parsed.ko_phonetic || '',
+      taiwanese:      parsed.tw          || '',
+      ipa_tw:         parsed.tw_phonetic || '',
+      words:          Array.isArray(parsed.words_ko) ? parsed.words_ko : [],
+      words_tw:       Array.isArray(parsed.words_tw) ? parsed.words_tw : [],
+      explanation:    parsed.explanation    || '',
+      explanation_tw: parsed.explanation_tw || ''
+    };
+    if (catId) record.category_id = catId;
+
+    const { error: saveErr } = await sb.from('phrases_asia').insert(record);
+    if (saveErr) throw new Error('DB保存エラー: ' + saveErr.message);
+
+    /* ── Step 4: 成功 → 一覧リロード ── */
+    setSaveStatus('success', '✅ 保存しました！');
+    showToast('✅ 保存してカードを追加しました');
+    tpInput.value = '';
+    await loadAll();
+
   } catch (err) {
-    showTpError('翻訳エラー: ' + err.message);
+    setSaveStatus('error', '⚠️ ' + err.message);
+    showTpError(err.message);
   } finally {
     tpBtn.classList.remove('loading');
     tpBtn.disabled = false;
@@ -1487,6 +1659,29 @@ async function runTranslate() {
 function showTpError(msg) {
   tpError.textContent = '⚠️ ' + msg;
   tpError.style.display = 'block';
+}
+
+function setSaveStatus(type, msg) {
+  const el = document.getElementById('tpSaveStatus');
+  el.className = 'tp-save-status';
+  el.innerHTML = '';
+  if (!type) return;
+  el.classList.add(type);
+  if (type === 'saving') {
+    const spin = document.createElement('span');
+    spin.className = 'save-spinner';
+    el.appendChild(spin);
+  }
+  el.appendChild(document.createTextNode(msg));
+}
+
+let toastTimer = null;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
 }
 
 /* ── Boot ───────────────────────────────────────────────── */
