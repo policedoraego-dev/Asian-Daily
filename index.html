@@ -1377,57 +1377,88 @@ function buildExplanation(expKo, expTw, idx) {
   return wrap;
 }
 
-/* ── TTS ────────────────────────────────────────────────── */
+/* ── TTS (OpenAI tts-1-hd) ──────────────────────────────── */
 let activeTtsBtn = null;
+let activeAudio  = null;
+const ttsCache   = new Map(); // text → blob URL
 
 document.getElementById('cardsGrid').addEventListener('click', e => {
   const btn = e.target.closest('.tts-btn');
   if (!btn) return;
-
   const text = btn.dataset.text;
-  const lang = btn.dataset.lang;
   if (!text) return;
-
-  speak(text, lang, btn);
+  speak(text, btn);
 });
 
-function speak(text, lang, btn) {
-  const synth = window.speechSynthesis;
-  if (!synth) return;
+async function speak(text, btn) {
+  if (!text) return;
 
-  if (synth.speaking) {
-    synth.cancel();
-    if (activeTtsBtn) activeTtsBtn.classList.remove('speaking');
-    if (activeTtsBtn === btn) { activeTtsBtn = null; return; }
+  // 同じボタンを再押し → 停止
+  if (activeTtsBtn === btn) {
+    stopAudio();
+    return;
   }
 
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang  = lang;
-  utter.rate  = 0.88;
-  utter.pitch = 1;
+  // 別の音声が再生中なら停止
+  stopAudio();
 
-  const voices  = synth.getVoices();
-  const primary = voices.find(v => v.lang === lang);
-  const fallback = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
-  if (primary)  utter.voice = primary;
-  else if (fallback) utter.voice = fallback;
+  const apiKey = getOpenAIKey();
+  if (!apiKey) return; // キー未設定時は無音で無視
 
   btn.classList.add('speaking');
   btn.textContent = '⏸';
   activeTtsBtn = btn;
 
-  const reset = () => {
-    btn.classList.remove('speaking');
-    btn.textContent = '🔊';
-    if (activeTtsBtn === btn) activeTtsBtn = null;
-  };
+  try {
+    let url = ttsCache.get(text);
 
-  utter.onend   = reset;
-  utter.onerror = reset;
-  synth.speak(utter);
+    if (!url) {
+      const res = await fetch('https://api.openai.com/v1/audio/speech', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + apiKey
+        },
+        body: JSON.stringify({
+          model: 'tts-1-hd',
+          input: text,
+          voice: 'nova',
+          speed: 0.92
+        })
+      });
+      if (!res.ok) throw new Error('TTS API ' + res.status);
+      const blob = await res.blob();
+      url = URL.createObjectURL(blob);
+      ttsCache.set(text, url);
+    }
+
+    const audio = new Audio(url);
+    activeAudio  = audio;
+
+    const done = () => {
+      if (activeTtsBtn === btn) resetTtsBtn(btn);
+      activeAudio = null;
+    };
+    audio.onended = done;
+    audio.onerror = done;
+    await audio.play();
+
+  } catch {
+    resetTtsBtn(btn);
+    activeAudio = null;
+  }
 }
 
-window.speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+function stopAudio() {
+  if (activeAudio) { activeAudio.pause(); activeAudio = null; }
+  if (activeTtsBtn) { resetTtsBtn(activeTtsBtn); }
+}
+
+function resetTtsBtn(btn) {
+  btn.classList.remove('speaking');
+  btn.textContent = '🔊';
+  if (activeTtsBtn === btn) activeTtsBtn = null;
+}
 
 /* ── UI helpers ─────────────────────────────────────────── */
 function el(tag, cls) {
@@ -1501,41 +1532,18 @@ const tpBtn    = document.getElementById('tpBtn');
 const tpResults= document.getElementById('tpResults');
 const tpError  = document.getElementById('tpError');
 
-let tpActiveTts = null;
-
 tpBtn.addEventListener('click', runTranslate);
 tpInput.addEventListener('keydown', e => { if (e.key === 'Enter') runTranslate(); });
 
 document.getElementById('tpKoTts').addEventListener('click', function() {
   const text = document.getElementById('tpKo').textContent;
-  if (text && text !== '—') speakTp(text, 'ko-KR', this);
+  if (text && text !== '—') speak(text, this);
 });
 
 document.getElementById('tpTwTts').addEventListener('click', function() {
   const text = document.getElementById('tpTw').textContent;
-  if (text && text !== '—') speakTp(text, 'zh-TW', this);
+  if (text && text !== '—') speak(text, this);
 });
-
-function speakTp(text, lang, btn) {
-  const synth = window.speechSynthesis;
-  if (!synth) return;
-  if (synth.speaking) {
-    synth.cancel();
-    if (tpActiveTts) { tpActiveTts.classList.remove('speaking'); tpActiveTts.textContent = '🔊'; }
-    if (tpActiveTts === btn) { tpActiveTts = null; return; }
-  }
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = lang;
-  utter.rate = 0.88;
-  const voices = synth.getVoices();
-  const v = voices.find(v => v.lang === lang) || voices.find(v => v.lang.startsWith(lang.split('-')[0]));
-  if (v) utter.voice = v;
-  btn.classList.add('speaking'); btn.textContent = '⏸';
-  tpActiveTts = btn;
-  const reset = () => { btn.classList.remove('speaking'); btn.textContent = '🔊'; if (tpActiveTts === btn) tpActiveTts = null; };
-  utter.onend = reset; utter.onerror = reset;
-  synth.speak(utter);
-}
 
 async function runTranslate() {
   const text = tpInput.value.trim();
