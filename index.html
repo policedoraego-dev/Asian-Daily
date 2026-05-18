@@ -954,7 +954,7 @@
       white-space: nowrap;
     }
 
-    .tp-cat-select {
+    .tp-cat-input {
       flex: 1;
       border: 1.5px solid var(--border);
       border-radius: var(--r-sm);
@@ -964,11 +964,11 @@
       color: var(--text);
       background: var(--bg);
       outline: none;
-      cursor: pointer;
-      transition: border-color 0.18s;
+      transition: border-color 0.18s, background 0.18s;
     }
 
-    .tp-cat-select:focus { border-color: var(--green-mid); }
+    .tp-cat-input:focus { border-color: var(--green-mid); background: #fff; }
+    .tp-cat-input::placeholder { color: var(--text-3); }
 
     /* ── Save status row ─────────────────────────────────── */
     .tp-save-status {
@@ -1101,10 +1101,19 @@
 
     <div class="tp-cat-row">
       <span class="tp-cat-label">📂 カテゴリ</span>
-      <select class="tp-cat-select" id="tpCategory">
-        <option value="">— 未分類 —</option>
-      </select>
+      <input class="tp-cat-input" id="tpCategory" type="text"
+             list="categoryDatalist" autocomplete="off"
+             placeholder="選択 or 自由入力..." />
     </div>
+    <datalist id="categoryDatalist">
+      <option value="🍽️ 飲食・カフェ">
+      <option value="🚕 交通・タクシー">
+      <option value="🛒 買い物・コンビニ">
+      <option value="🏨 ホテル・宿泊">
+      <option value="💆 リラク・マッサージ">
+      <option value="🤝 挨拶・基本会話">
+      <option value="🆘 トラブル・緊急">
+    </datalist>
 
     <div class="tp-input-row">
       <input class="tp-input" id="tpInput" type="text"
@@ -1251,17 +1260,22 @@ function buildCatBar() {
     list.appendChild(makeBtn(cat.id, label, activeCat === cat.id));
   });
 
-  // 翻訳パネルのカテゴリ選択も同期
-  const sel = document.getElementById('tpCategory');
-  const prev = sel.value;
-  sel.innerHTML = '<option value="">— 未分類 —</option>';
+  // datalist にDBのカテゴリを追加（デフォルト候補は HTML 側に固定済み）
+  const dl = document.getElementById('categoryDatalist');
+  // デフォルト候補（value属性あり）は残し、DB由来のものだけ置き換え
+  const dbOptions = dl.querySelectorAll('option[data-db]');
+  dbOptions.forEach(o => o.remove());
   categories.forEach(cat => {
-    const opt = document.createElement('option');
-    opt.value = cat.id;
-    opt.textContent = [cat.icon, cat.name].filter(Boolean).join(' ');
-    sel.appendChild(opt);
+    const label = [cat.icon, cat.name].filter(Boolean).join(' ');
+    // デフォルト候補と重複しなければ追加
+    const already = [...dl.options].some(o => o.value === label);
+    if (!already) {
+      const opt = document.createElement('option');
+      opt.value = label;
+      opt.dataset.db = cat.id;
+      dl.appendChild(opt);
+    }
   });
-  sel.value = prev;
 }
 
 function makeBtn(id, label, isActive) {
@@ -1700,6 +1714,38 @@ document.getElementById('tpTwTts').addEventListener('click', function() {
   if (text && text !== '—') speak(text, this);
 });
 
+/* ── カテゴリ名 → ID（なければ新規作成） ─────────────────── */
+async function resolveCategoryId(input) {
+  const name = input.trim();
+  if (!name) return null;
+
+  // 絵文字プレフィックスを分離
+  const emojiRe = /^(\p{Emoji_Presentation}|\p{Extended_Pictographic})\s*/u;
+  const emojiMatch = name.match(emojiRe);
+  const icon    = emojiMatch ? emojiMatch[1] : '📁';
+  const catName = emojiMatch ? name.slice(emojiMatch[0].length).trim() : name;
+
+  // 既存カテゴリと照合（表示文字列 or name単体で一致）
+  const existing = categories.find(c => {
+    const full = [c.icon, c.name].filter(Boolean).join(' ');
+    return full === name || c.name === catName || c.name === name;
+  });
+  if (existing) return existing.id;
+
+  // 新規カテゴリを categories_asia に INSERT
+  const { data, error } = await sb
+    .from('categories_asia')
+    .insert({ icon, name: catName, sort_order: categories.length + 1 })
+    .select()
+    .single();
+
+  if (error) throw new Error('カテゴリ作成エラー: ' + error.message);
+
+  categories.push(data); // ローカルキャッシュに追記
+  buildCatBar();         // タブバー・datalist を即時更新
+  return data.id;
+}
+
 async function runTranslate() {
   const text = tpInput.value.trim();
   if (!text) return;
@@ -1786,7 +1832,8 @@ async function runTranslate() {
     /* ── Step 3: Supabase に保存 ── */
     setSaveStatus('saving', '保存中...');
 
-    const catId = document.getElementById('tpCategory').value || null;
+    const catInput = document.getElementById('tpCategory').value.trim();
+    const catId = catInput ? await resolveCategoryId(catInput) : null;
 
     const record = {
       japanese:       text,
