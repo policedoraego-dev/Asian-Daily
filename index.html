@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Asian Daily — アジア語フレーズ帳</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&family=Noto+Sans+KR:wght@400;500;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    /* ── Design Tokens ───────────────────────────────────── */
+    :root {
+      --bg:           #EDFAF3;
+      --bg-card:      #FFFFFF;
+      --bg-section:   #F4FDF8;
+      --green:        #1C6647;
+      --green-mid:    #2E8B5A;
+      --green-light:  #B2EDD0;
+      --green-xlight: #E2F5EC;
+      --yellow:       #FFD23F;
+      --yellow-light: #FFF8D6;
+      --yellow-dark:  #C9920A;
+      --text:         #182F22;
+      --text-2:       #3F6650;
+      --text-3:       #7CA98C;
+      --border:       #CAE9D8;
+      --border-2:     #E6F5ED;
+      --shadow-sm:    0 2px 8px rgba(28,102,71,0.07);
+      --shadow-md:    0 6px 28px rgba(28,102,71,0.13);
+      --shadow-lg:    0 16px 56px rgba(28,102,71,0.18);
+      --r-lg:         22px;
+      --r-md:         14px;
+      --r-sm:         9px;
+    }
+
+    /* ── Reset & Base ────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Noto Sans JP', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Header ──────────────────────────────────────────── */
+    header {
+      background: var(--green);
+      padding: 18px 20px 0;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+    }
+
+    .hd-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 14px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .logo-globe {
+      font-size: 30px;
+      line-height: 1;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+    }
+
+    .logo-texts { display: flex; flex-direction: column; gap: 1px; }
+
+    .logo-name {
+      font-size: 21px;
+      font-weight: 900;
+      color: var(--yellow);
+      letter-spacing: -0.6px;
+      line-height: 1;
+    }
+
+    .logo-sub {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--green-light);
+      letter-spacing: 2.5px;
+      text-transform: uppercase;
+    }
+
+    .hd-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .stat-pill {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 20px;
+      padding: 4px 11px;
+      font-size: 12px;
+      color: var(--green-light);
+    }
+
+    .stat-pill b { color: #fff; }
+
+    .cfg-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,0.12);
+      border: 1.5px solid rgba(255,255,255,0.22);
+      border-radius: var(--r-sm);
+      padding: 6px 12px;
+      color: rgba(255,255,255,0.85);
+      font-size: 13px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.18s, border-color 0.18s;
+    }
+
+    .cfg-btn:hover {
+      background: rgba(255,255,255,0.2);
+      border-color: var(--yellow);
+      color: var(--yellow);
+    }
+
+    /* Search */
+    .search-wrap {
+      position: relative;
+      margin-bottom: 14px;
+    }
+
+    .search-ico {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 15px;
+      pointer-events: none;
+      opacity: 0.5;
+    }
+
+    .search-input {
+      width: 100%;
+      background: rgba(255,255,255,0.10);
+      border: 1.5px solid rgba(255,255,255,0.18);
+      border-radius: var(--r-md);
+      padding: 10px 14px 10px 40px;
+      font-size: 14px;
+      color: #fff;
+      font-family: inherit;
+      outline: none;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .search-input::placeholder { color: rgba(255,255,255,0.38); }
+
+    .search-input:focus {
+      background: rgba(255,255,255,0.17);
+      border-color: var(--yellow);
+    }
+
+    /* ── Category Bar ─────────────────────────────────────── */
+    .cat-bar {
+      background: var(--green);
+      padding: 0 20px 14px;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+
+    .cat-bar::-webkit-scrollbar { display: none; }
+
+    .cat-list {
+      display: flex;
+      gap: 7px;
+      width: max-content;
+    }
+
+    .cat-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 13px;
+      border-radius: 20px;
+      font-size: 12.5px;
+      font-weight: 500;
+      cursor: pointer;
+      border: 1.5px solid rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.08);
+      color: rgba(255,255,255,0.65);
+      font-family: inherit;
+      transition: all 0.18s;
+      white-space: nowrap;
+    }
+
+    .cat-btn:hover {
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+    }
+
+    .cat-btn.active {
+      background: var(--yellow);
+      border-color: var(--yellow);
+      color: var(--green);
+      font-weight: 800;
+    }
+
+    /* ── Main ────────────────────────────────────────────── */
+    main {
+      padding: 20px 16px 120px;
+      max-width: 820px;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 640px) {
+      main { padding: 24px 24px 120px; }
+    }
+
+    /* Section header */
+    .sec-hd {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .sec-label {
+      font-size: 11.5px;
+      font-weight: 800;
+      color: var(--text-3);
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    .count-badge {
+      background: var(--green);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 9px;
+      border-radius: 10px;
+    }
+
+    /* ── Cards ───────────────────────────────────────────── */
+    .cards-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .phrase-card {
+      background: var(--bg-card);
+      border-radius: var(--r-lg);
+      padding: 0;
+      box-shadow: var(--shadow-sm);
+      border: 1.5px solid var(--border-2);
+      overflow: hidden;
+      transition: box-shadow 0.25s, transform 0.25s;
+      animation: cardIn 0.32s ease both;
+    }
+
+    .phrase-card:hover {
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    @keyframes cardIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Card top strip */
+    .card-strip {
+      height: 5px;
+      background: linear-gradient(90deg, var(--green) 0%, var(--yellow) 100%);
+    }
+
+    .card-body { padding: 18px 18px 16px; }
+
+    /* Card header row */
+    .card-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 13px;
+    }
+
+    .cat-tag {
+      font-size: 11px;
+      font-weight: 700;
+      background: var(--yellow-light);
+      color: var(--yellow-dark);
+      padding: 3px 10px;
+      border-radius: 8px;
+      letter-spacing: 0.3px;
+    }
+
+    /* Japanese phrase */
+    .jp-phrase {
+      font-size: 21px;
+      font-weight: 800;
+      line-height: 1.45;
+      color: var(--text);
+      letter-spacing: -0.3px;
+      padding-bottom: 14px;
+      margin-bottom: 14px;
+      border-bottom: 2px dashed var(--border);
+    }
+
+    /* Language rows */
+    .lang-rows { display: flex; flex-direction: column; gap: 0; }
+
+    .lang-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border-2);
+    }
+
+    .lang-row:last-child { border-bottom: none; padding-bottom: 4px; }
+
+    /* Badge */
+    .lang-badge {
+      flex-shrink: 0;
+      width: 38px;
+      height: 38px;
+      border-radius: 11px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: 0;
+      line-height: 1;
+      gap: 1px;
+      margin-top: 1px;
+    }
+
+    .lang-badge .flag { font-size: 17px; }
+    .lang-badge .code { font-size: 9px; font-weight: 800; }
+
+    .lang-badge.ko {
+      background: var(--green);
+      color: #fff;
+    }
+
+    .lang-badge.tw {
+      background: var(--yellow);
+      color: var(--green);
+    }
+
+    .lang-content { flex: 1; min-width: 0; }
+
+    .lang-text {
+      font-size: 17px;
+      font-weight: 600;
+      line-height: 1.45;
+      color: var(--text);
+    }
+
+    .lang-text.ko { font-family: 'Noto Sans KR', 'Noto Sans JP', sans-serif; }
+    .lang-text.tw { font-family: 'Noto Sans TC', 'Noto Sans JP', sans-serif; }
+
+    .phonetic {
+      font-size: 12px;
+      color: var(--text-3);
+      margin-top: 3px;
+      letter-spacing: 0.3px;
+      font-style: italic;
+    }
+
+    /* TTS button */
+    .tts-btn {
+      flex-shrink: 0;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--r-sm);
+      border: 1.5px solid var(--border);
+      background: var(--bg-section);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      transition: background 0.18s, border-color 0.18s, transform 0.15s;
+      margin-top: 1px;
+    }
+
+    .tts-btn:hover {
+      background: var(--green-xlight);
+      border-color: var(--green-mid);
+      transform: scale(1.06);
+    }
+
+    .tts-btn.speaking {
+      background: var(--yellow);
+      border-color: var(--yellow);
+      animation: tts-pulse 0.7s infinite ease-in-out;
+    }
+
+    @keyframes tts-pulse {
+      0%, 100% { transform: scale(1); }
+      50%       { transform: scale(1.12); }
+    }
+
+    /* ── Word chips ──────────────────────────────────────── */
+    .words-block {
+      background: var(--bg-section);
+      border-top: 1px solid var(--border-2);
+      padding: 12px 18px;
+    }
+
+    .words-block + .words-block {
+      border-top: none;
+    }
+
+    .words-label {
+      font-size: 10.5px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      color: var(--text-3);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .words-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      background: var(--bg-card);
+      border: 1.5px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: var(--text-2);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .chip-word { font-weight: 700; color: var(--text); }
+
+    /* ── Explanation ─────────────────────────────────────── */
+    .exp-wrap {
+      border-top: 1px solid var(--border-2);
+    }
+
+    .exp-toggle {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 11px 18px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 12.5px;
+      color: var(--text-2);
+      font-weight: 600;
+      transition: background 0.15s;
+      text-align: left;
+    }
+
+    .exp-toggle:hover { background: var(--bg-section); }
+
+    .exp-arrow {
+      font-size: 11px;
+      transition: transform 0.2s;
+    }
+
+    .exp-arrow.open { transform: rotate(180deg); }
+
+    .exp-body {
+      display: none;
+      padding: 0 18px 14px;
+      font-size: 13px;
+      line-height: 1.75;
+      color: var(--text-2);
+    }
+
+    .exp-body.open { display: block; }
+
+    .exp-body p + p {
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border-2);
+    }
+
+    /* ── Loading ─────────────────────────────────────────── */
+    .loading-wrap {
+      text-align: center;
+      padding: 80px 20px;
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 44px;
+      height: 44px;
+      border: 3.5px solid var(--border);
+      border-top-color: var(--green);
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin-bottom: 18px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-text { font-size: 14px; color: var(--text-3); }
+
+    /* ── Empty ───────────────────────────────────────────── */
+    .empty-state {
+      text-align: center;
+      padding: 80px 20px;
+    }
+
+    .empty-icon { font-size: 52px; margin-bottom: 14px; }
+    .empty-text { font-size: 15px; color: var(--text-3); }
+
+    /* ── Error banner ────────────────────────────────────── */
+    .error-banner {
+      display: none;
+      background: #FFF0F0;
+      border: 1.5px solid #FFCDD2;
+      border-radius: var(--r-md);
+      padding: 14px 18px;
+      margin-bottom: 18px;
+      font-size: 13px;
+      color: #B71C1C;
+      line-height: 1.6;
+    }
+
+    /* ── Config Modal ────────────────────────────────────── */
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(8,24,14,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 500;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .overlay.open { display: flex; }
+
+    .modal {
+      background: #fff;
+      border-radius: var(--r-lg);
+      padding: 28px 24px;
+      width: 100%;
+      max-width: 460px;
+      box-shadow: var(--shadow-lg);
+      animation: modalIn 0.22s ease;
+    }
+
+    @keyframes modalIn {
+      from { opacity: 0; transform: scale(0.96) translateY(8px); }
+      to   { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .modal-title {
+      font-size: 19px;
+      font-weight: 900;
+      color: var(--green);
+      margin-bottom: 4px;
+    }
+
+    .modal-sub {
+      font-size: 13px;
+      color: var(--text-3);
+      margin-bottom: 22px;
+      line-height: 1.55;
+    }
+
+    .field { margin-bottom: 14px; }
+
+    .field label {
+      display: block;
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-2);
+      margin-bottom: 6px;
+    }
+
+    .field input {
+      width: 100%;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
+      padding: 10px 13px;
+      font-size: 13px;
+      font-family: 'Courier New', monospace;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.18s;
+    }
+
+    .field input:focus { border-color: var(--green-mid); }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      background: var(--green);
+      color: #fff;
+      border: none;
+      border-radius: var(--r-sm);
+      padding: 12px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.18s;
+    }
+
+    .btn-primary:hover { background: var(--green-mid); }
+
+    .btn-cancel {
+      padding: 12px 18px;
+      background: var(--bg);
+      color: var(--text-2);
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 14px;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.18s;
+    }
+
+    .btn-cancel:hover { background: var(--border); }
+
+    /* ── Scrollbar styling ───────────────────────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════ HEADER ═══════════════ -->
+<header>
+  <div class="hd-top">
+    <div class="logo">
+      <span class="logo-globe">🌏</span>
+      <div class="logo-texts">
+        <div class="logo-name">Asian Daily</div>
+        <div class="logo-sub">JP → KR · TW</div>
+      </div>
+    </div>
+    <div class="hd-right">
+      <div class="stat-pill">フレーズ <b id="totalCount">—</b></div>
+      <button class="cfg-btn" id="cfgBtn">⚙️ 接続</button>
+    </div>
+  </div>
+  <div class="search-wrap">
+    <span class="search-ico">🔍</span>
+    <input class="search-input" id="searchInput" type="text"
+           placeholder="日本語・한국어・中文で検索..." autocomplete="off" />
+  </div>
+</header>
+
+<!-- ═══════════════ CATEGORY BAR ═══════════════ -->
+<div class="cat-bar">
+  <div class="cat-list" id="catList">
+    <button class="cat-btn active" data-cat="all">🌏 すべて</button>
+  </div>
+</div>
+
+<!-- ═══════════════ MAIN ═══════════════ -->
+<main>
+  <div class="error-banner" id="errorBanner"></div>
+
+  <div class="sec-hd">
+    <span class="sec-label">フレーズ一覧</span>
+    <span class="count-badge" id="phraseCount">0</span>
+  </div>
+
+  <div class="loading-wrap" id="loadingWrap">
+    <div class="spinner"></div>
+    <div class="loading-text">フレーズを読み込み中...</div>
+  </div>
+
+  <div class="cards-grid" id="cardsGrid"></div>
+
+  <div class="empty-state" id="emptyState" style="display:none">
+    <div class="empty-icon">🔎</div>
+    <div class="empty-text">フレーズが見つかりませんでした</div>
+  </div>
+</main>
+
+<!-- ═══════════════ CONFIG MODAL ═══════════════ -->
+<div class="overlay" id="configOverlay">
+  <div class="modal">
+    <div class="modal-title">🔗 Supabase 接続設定</div>
+    <div class="modal-sub">
+      Supabase プロジェクトの URL と Anon Key を入力してください。<br>
+      設定はブラウザに保存されます。
+    </div>
+    <div class="field">
+      <label>Supabase URL</label>
+      <input id="cfgUrl" type="text" placeholder="https://xxxx.supabase.co" spellcheck="false" />
+    </div>
+    <div class="field">
+      <label>Anon Key (公開キー)</label>
+      <input id="cfgKey" type="text" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." spellcheck="false" />
+    </div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="saveConfigBtn">接続する</button>
+      <button class="btn-cancel" id="cancelCfgBtn">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ SCRIPT ═══════════════ -->
+<script>
+'use strict';
+
+/* ── Config storage ─────────────────────────────────────── */
+const STORE_KEY = 'asian_daily_v1';
+
+function savedConfig() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)) || null; }
+  catch { return null; }
+}
+
+function storeConfig(url, key) {
+  localStorage.setItem(STORE_KEY, JSON.stringify({ url, key }));
+}
+
+/* ── Supabase client ────────────────────────────────────── */
+let sb = null;
+
+function initSb(url, key) {
+  sb = window.supabase.createClient(url, key);
+}
+
+/* ── App state ──────────────────────────────────────────── */
+let allPhrases  = [];
+let categories  = [];
+let activeCat   = 'all';
+let searchQuery = '';
+
+/* ── Data loading ───────────────────────────────────────── */
+async function loadAll() {
+  if (!sb) {
+    setLoading(false);
+    showError('Supabase に接続されていません。右上の ⚙️ 接続 ボタンから設定してください。');
+    return;
+  }
+
+  setLoading(true);
+  hideError();
+
+  try {
+    const [catsResult, phrasesResult] = await Promise.all([
+      sb.from('categories_asia').select('*').order('sort_order'),
+      sb.from('phrases_asia').select('*').order('created_at', { ascending: false })
+    ]);
+
+    if (catsResult.error) throw catsResult.error;
+    if (phrasesResult.error) throw phrasesResult.error;
+
+    categories = catsResult.data  || [];
+    allPhrases = phrasesResult.data || [];
+
+    document.getElementById('totalCount').textContent = allPhrases.length;
+
+    buildCatBar();
+    renderCards();
+  } catch (err) {
+    showError('データの取得に失敗しました: ' + err.message);
+  } finally {
+    setLoading(false);
+  }
+}
+
+/* ── Category bar ───────────────────────────────────────── */
+function buildCatBar() {
+  const list = document.getElementById('catList');
+  list.innerHTML = '';
+
+  const allBtn = makeBtn('all', '🌏 すべて', activeCat === 'all');
+  list.appendChild(allBtn);
+
+  categories.forEach(cat => {
+    const label = [cat.icon, cat.name].filter(Boolean).join(' ');
+    list.appendChild(makeBtn(cat.id, label, activeCat === cat.id));
+  });
+}
+
+function makeBtn(id, label, isActive) {
+  const btn = document.createElement('button');
+  btn.className = 'cat-btn' + (isActive ? ' active' : '');
+  btn.dataset.cat = id;
+  btn.textContent = label;
+  return btn;
+}
+
+document.getElementById('catList').addEventListener('click', e => {
+  const btn = e.target.closest('.cat-btn');
+  if (!btn) return;
+  activeCat = btn.dataset.cat;
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCards();
+});
+
+/* ── Search ─────────────────────────────────────────────── */
+document.getElementById('searchInput').addEventListener('input', e => {
+  searchQuery = e.target.value.toLowerCase().trim();
+  renderCards();
+});
+
+/* ── Render cards ───────────────────────────────────────── */
+function renderCards() {
+  let list = allPhrases;
+
+  if (activeCat !== 'all') {
+    list = list.filter(p => p.category_id === activeCat);
+  }
+
+  if (searchQuery) {
+    list = list.filter(p =>
+      (p.japanese   || '').toLowerCase().includes(searchQuery) ||
+      (p.korean     || '').toLowerCase().includes(searchQuery) ||
+      (p.taiwanese  || '').toLowerCase().includes(searchQuery) ||
+      (p.explanation|| '').toLowerCase().includes(searchQuery)
+    );
+  }
+
+  document.getElementById('phraseCount').textContent = list.length;
+
+  const grid  = document.getElementById('cardsGrid');
+  const empty = document.getElementById('emptyState');
+
+  if (list.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+
+  const fragment = document.createDocumentFragment();
+  list.forEach((p, i) => {
+    const card = buildCard(p, i);
+    fragment.appendChild(card);
+  });
+  grid.innerHTML = '';
+  grid.appendChild(fragment);
+}
+
+/* ── Build card DOM ─────────────────────────────────────── */
+function buildCard(p, idx) {
+  const cat = categories.find(c => c.id === p.category_id);
+
+  const card = el('div', 'phrase-card');
+  card.style.animationDelay = `${Math.min(idx * 0.035, 0.4)}s`;
+
+  /* strip */
+  card.appendChild(el('div', 'card-strip'));
+
+  /* body */
+  const body = el('div', 'card-body');
+
+  /* header row */
+  const hd = el('div', 'card-hd');
+  if (cat) {
+    const tag = el('span', 'cat-tag');
+    tag.textContent = [cat.icon, cat.name].filter(Boolean).join(' ');
+    hd.appendChild(tag);
+  } else {
+    hd.appendChild(el('span'));
+  }
+  body.appendChild(hd);
+
+  /* japanese */
+  const jp = el('div', 'jp-phrase');
+  jp.textContent = p.japanese || '';
+  body.appendChild(jp);
+
+  /* language rows */
+  const rows = el('div', 'lang-rows');
+
+  rows.appendChild(buildLangRow('ko', '🇰🇷', 'KR', p.korean, p.ipa, 'ko-KR'));
+  rows.appendChild(buildLangRow('tw', '🇹🇼', 'TW', p.taiwanese, p.ipa_tw, 'zh-TW'));
+
+  body.appendChild(rows);
+  card.appendChild(body);
+
+  /* words blocks */
+  const wordsKo = normalizeWords(p.words,    ['ko', 'word']);
+  const wordsTw = normalizeWords(p.words_tw, ['tw', 'word']);
+
+  if (wordsKo.length) card.appendChild(buildWordsBlock('🇰🇷 単語 (韓国語)', wordsKo, 'ko'));
+  if (wordsTw.length) card.appendChild(buildWordsBlock('🇹🇼 単語 (台湾華語)', wordsTw, 'tw'));
+
+  /* explanation */
+  if (p.explanation || p.explanation_tw) {
+    card.appendChild(buildExplanation(p.explanation, p.explanation_tw, idx));
+  }
+
+  return card;
+}
+
+function buildLangRow(langClass, flag, code, text, phonetic, ttsLang) {
+  const row = el('div', 'lang-row');
+
+  /* badge */
+  const badge = el('div', 'lang-badge ' + langClass);
+  const flagEl = el('span', 'flag');
+  flagEl.textContent = flag;
+  const codeEl = el('span', 'code');
+  codeEl.textContent = code;
+  badge.appendChild(flagEl);
+  badge.appendChild(codeEl);
+  row.appendChild(badge);
+
+  /* content */
+  const content = el('div', 'lang-content');
+  const textEl = el('div', 'lang-text ' + langClass);
+  textEl.textContent = text || '';
+  content.appendChild(textEl);
+
+  if (phonetic) {
+    const ph = el('div', 'phonetic');
+    ph.textContent = phonetic;
+    content.appendChild(ph);
+  }
+
+  row.appendChild(content);
+
+  /* TTS button */
+  const btn = el('button', 'tts-btn');
+  btn.title = `${ttsLang} で読み上げ`;
+  btn.textContent = '🔊';
+  btn.dataset.text = text || '';
+  btn.dataset.lang = ttsLang;
+  row.appendChild(btn);
+
+  return row;
+}
+
+function buildWordsBlock(title, words, langClass) {
+  const block = el('div', 'words-block');
+
+  const label = el('div', 'words-label');
+  label.textContent = title;
+  block.appendChild(label);
+
+  const chips = el('div', 'words-chips');
+  words.forEach(w => {
+    const chip = el('div', 'chip');
+    const orig = el('span', 'chip-word ' + langClass);
+    orig.textContent = w.text;
+    chip.appendChild(orig);
+    if (w.meaning) {
+      const sep = document.createTextNode(' = ');
+      chip.appendChild(sep);
+      chip.appendChild(document.createTextNode(w.meaning));
+    }
+    chips.appendChild(chip);
+  });
+
+  block.appendChild(chips);
+  return block;
+}
+
+function buildExplanation(expKo, expTw, idx) {
+  const wrap = el('div', 'exp-wrap');
+
+  const toggle = el('button', 'exp-toggle');
+  toggle.type = 'button';
+
+  const left = el('span');
+  left.textContent = '💡 解説を見る';
+  const arrow = el('span', 'exp-arrow');
+  arrow.textContent = '▾';
+
+  toggle.appendChild(left);
+  toggle.appendChild(arrow);
+
+  const body = el('div', 'exp-body');
+  body.id = 'exp-' + idx;
+
+  if (expKo) {
+    const p = el('p');
+    p.textContent = expKo;
+    body.appendChild(p);
+  }
+
+  if (expTw) {
+    const p = el('p');
+    p.textContent = '🇹🇼 ' + expTw;
+    body.appendChild(p);
+  }
+
+  toggle.addEventListener('click', () => {
+    const open = body.classList.toggle('open');
+    arrow.classList.toggle('open', open);
+    toggle.querySelector('span').textContent = open ? '💡 解説を閉じる' : '💡 解説を見る';
+  });
+
+  wrap.appendChild(toggle);
+  wrap.appendChild(body);
+  return wrap;
+}
+
+/* ── TTS ────────────────────────────────────────────────── */
+let activeTtsBtn = null;
+
+document.getElementById('cardsGrid').addEventListener('click', e => {
+  const btn = e.target.closest('.tts-btn');
+  if (!btn) return;
+
+  const text = btn.dataset.text;
+  const lang = btn.dataset.lang;
+  if (!text) return;
+
+  speak(text, lang, btn);
+});
+
+function speak(text, lang, btn) {
+  const synth = window.speechSynthesis;
+  if (!synth) return;
+
+  if (synth.speaking) {
+    synth.cancel();
+    if (activeTtsBtn) activeTtsBtn.classList.remove('speaking');
+    if (activeTtsBtn === btn) { activeTtsBtn = null; return; }
+  }
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang  = lang;
+  utter.rate  = 0.88;
+  utter.pitch = 1;
+
+  const voices  = synth.getVoices();
+  const primary = voices.find(v => v.lang === lang);
+  const fallback = voices.find(v => v.lang.startsWith(lang.split('-')[0]));
+  if (primary)  utter.voice = primary;
+  else if (fallback) utter.voice = fallback;
+
+  btn.classList.add('speaking');
+  btn.textContent = '⏸';
+  activeTtsBtn = btn;
+
+  const reset = () => {
+    btn.classList.remove('speaking');
+    btn.textContent = '🔊';
+    if (activeTtsBtn === btn) activeTtsBtn = null;
+  };
+
+  utter.onend   = reset;
+  utter.onerror = reset;
+  synth.speak(utter);
+}
+
+window.speechSynthesis.onvoiceschanged = () => speechSynthesis.getVoices();
+
+/* ── UI helpers ─────────────────────────────────────────── */
+function el(tag, cls) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  return e;
+}
+
+function setLoading(on) {
+  document.getElementById('loadingWrap').style.display = on ? 'block' : 'none';
+}
+
+function showError(msg) {
+  const b = document.getElementById('errorBanner');
+  b.textContent = '⚠️ ' + msg;
+  b.style.display = 'block';
+}
+
+function hideError() {
+  document.getElementById('errorBanner').style.display = 'none';
+}
+
+function normalizeWords(raw, keys) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map(w => {
+    const text = keys.map(k => w[k]).find(v => v) || '';
+    return { text, meaning: w.meaning || w.jp || w.japanese || '' };
+  }).filter(w => w.text);
+}
+
+/* ── Config modal ───────────────────────────────────────── */
+document.getElementById('cfgBtn').addEventListener('click', openCfg);
+document.getElementById('cancelCfgBtn').addEventListener('click', closeCfg);
+document.getElementById('configOverlay').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeCfg();
+});
+
+document.getElementById('saveConfigBtn').addEventListener('click', () => {
+  const url = document.getElementById('cfgUrl').value.trim();
+  const key = document.getElementById('cfgKey').value.trim();
+
+  if (!url || !key) {
+    alert('URL と Anon Key を両方入力してください。');
+    return;
+  }
+
+  storeConfig(url, key);
+  initSb(url, key);
+  closeCfg();
+  loadAll();
+});
+
+function openCfg() {
+  const cfg = savedConfig();
+  if (cfg) {
+    document.getElementById('cfgUrl').value = cfg.url || '';
+    document.getElementById('cfgKey').value = cfg.key || '';
+  }
+  document.getElementById('configOverlay').classList.add('open');
+}
+
+function closeCfg() {
+  document.getElementById('configOverlay').classList.remove('open');
+}
+
+/* ── Boot ───────────────────────────────────────────────── */
+(function init() {
+  const cfg = savedConfig();
+
+  if (cfg && cfg.url && cfg.key) {
+    initSb(cfg.url, cfg.key);
+    loadAll();
+  } else {
+    setLoading(false);
+    showError('Supabase に接続されていません。右上の ⚙️ 接続 ボタンから設定してください。');
+    openCfg();
+  }
+})();
+</script>
+</body>
+</html>
