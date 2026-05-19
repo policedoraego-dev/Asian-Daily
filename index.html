@@ -555,21 +555,38 @@
       background: rgba(8,24,14,0.6);
       backdrop-filter: blur(4px);
       z-index: 500;
-      align-items: center;
+      /* スクロールはオーバーレイ側で受け持つ */
+      align-items: flex-start;
       justify-content: center;
-      padding: 20px;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      /* 上下に余白。下は iOS ホームバー分も加算 */
+      padding: 24px 16px calc(24px + env(safe-area-inset-bottom, 16px));
     }
 
     .overlay.open { display: flex; }
 
+    /* モーダルが開いている間 body スクロールを止める */
+    body.modal-open {
+      overflow: hidden;
+      /* iOS Safari は position:fixed も必要な場合がある */
+      position: fixed;
+      width: 100%;
+    }
+
     .modal {
       background: #fff;
       border-radius: var(--r-lg);
-      padding: 28px 24px;
+      /* padding 下を多めに → 保存ボタンが隠れない */
+      padding: 28px 24px 32px;
       width: 100%;
       max-width: 460px;
+      /* オーバーレイ内で上揃え＋中央寄せ */
+      margin: auto;
       box-shadow: var(--shadow-lg);
       animation: modalIn 0.22s ease;
+      /* モーダル自体は縮まらず内容をすべて表示 */
+      flex-shrink: 0;
     }
 
     @keyframes modalIn {
@@ -621,6 +638,8 @@
       display: flex;
       gap: 10px;
       margin-top: 22px;
+      /* 保存ボタンがブラウザUI に被らないよう下余白 */
+      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
 
     .btn-primary {
@@ -1643,11 +1662,17 @@ function openCfg() {
     document.getElementById('cfgKey').value    = cfg.key       || '';
     document.getElementById('cfgOpenAI').value = cfg.openaiKey || '';
   }
-  document.getElementById('configOverlay').classList.add('open');
+  // オーバーレイを開く前にスクロール位置を先頭へ戻す
+  const overlay = document.getElementById('configOverlay');
+  overlay.scrollTop = 0;
+  overlay.classList.add('open');
+  // body スクロールをロック（iOS Safari ガタつき防止）
+  document.body.classList.add('modal-open');
 }
 
 function closeCfg() {
   document.getElementById('configOverlay').classList.remove('open');
+  document.body.classList.remove('modal-open');
 }
 
 /* ── FAB & Input Modal ──────────────────────────────────── */
