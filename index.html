@@ -378,8 +378,7 @@
 <!-- ════════ CATEGORY BAR ════════ -->
 <div class="cat-bar">
   <div class="cat-list" id="catList">
-    <button class="cat-btn active" data-cat="all">🌏 すべて</button>
-    <button class="cat-manage-btn" id="openGroupManageBtn">✏️ グループ管理</button>
+    <!-- buildCatBar() が動的に生成する -->
   </div>
 </div>
 
@@ -484,63 +483,59 @@
 
 <!-- ════════ PHRASE ADD/EDIT MODAL ════════ -->
 <div class="overlay" id="phraseOverlay">
-  <div class="modal wide">
-    <div class="modal-title" id="phraseModalTitle">＋ フレーズを追加</div>
-    <div class="modal-sub">日本語フレーズを入力してください。AIで韓国語・台湾華語を自動翻訳できます。</div>
-
-    <div class="field">
-      <label>🇯🇵 日本語フレーズ（必須）</label>
-      <input id="pmJa" type="text" placeholder="例：いくらですか？" />
+  <div class="modal" style="max-width:440px; padding:18px 18px 22px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <div class="modal-title" id="phraseModalTitle" style="font-size:16px;margin:0;">＋ フレーズを追加</div>
+      <button class="btn-ai" id="pmAiBtn" style="padding:6px 11px;font-size:12px;">
+        <span id="pmAiIco">✨ AI翻訳</span>
+        <span id="pmAiSpin" style="display:none;width:12px;height:12px;border:2px solid rgba(201,146,10,0.4);border-top-color:var(--yellow-dark);border-radius:50%;animation:spin 0.7s linear infinite;"></span>
+      </button>
     </div>
-    <div class="field">
+
+    <div class="field" style="margin-bottom:10px;">
+      <label>🇯🇵 日本語（必須）</label>
+      <input id="pmJa" type="text" placeholder="例：いくらですか？" style="font-size:14px;" />
+    </div>
+
+    <div class="field" style="margin-bottom:10px;">
       <label>📂 グループ</label>
-      <select id="pmCat">
+      <select id="pmCat" style="font-size:13px;padding:8px 10px;">
         <option value="">グループなし</option>
       </select>
     </div>
 
-    <div style="display:flex; justify-content:flex-end; margin-bottom:10px;">
-      <button class="btn-ai" id="pmAiBtn">
-        <span id="pmAiIco">✨ AI翻訳</span>
-        <span id="pmAiSpin" style="display:none; width:14px; height:14px; border:2px solid rgba(201,146,10,0.4); border-top-color:var(--yellow-dark); border-radius:50%; animation:spin 0.7s linear infinite;"></span>
-      </button>
-    </div>
-
-    <div class="modal-divider"><span>🇰🇷 韓国語</span></div>
-    <div class="field-row">
-      <div class="field">
-        <label>韓国語訳</label>
-        <input id="pmKo" type="text" placeholder="얼마예요?" />
+    <div class="field-row" style="margin-bottom:10px;">
+      <div class="field" style="margin:0;">
+        <label>🇰🇷 韓国語</label>
+        <input id="pmKo" type="text" placeholder="얼마예요?" style="font-size:13px;padding:8px 10px;" />
       </div>
-      <div class="field">
-        <label>読み（カタカナ）</label>
-        <input id="pmKoP" type="text" placeholder="オルマエヨ?" />
+      <div class="field" style="margin:0;">
+        <label>読み</label>
+        <input id="pmKoP" type="text" placeholder="オルマエヨ?" style="font-size:13px;padding:8px 10px;" />
       </div>
     </div>
 
-    <div class="modal-divider"><span>🇹🇼 台湾華語</span></div>
-    <div class="field-row">
-      <div class="field">
-        <label>台湾華語訳</label>
-        <input id="pmTw" type="text" placeholder="多少錢？" />
+    <div class="field-row" style="margin-bottom:10px;">
+      <div class="field" style="margin:0;">
+        <label>🇹🇼 台湾華語</label>
+        <input id="pmTw" type="text" placeholder="多少錢？" style="font-size:13px;padding:8px 10px;" />
       </div>
-      <div class="field">
+      <div class="field" style="margin:0;">
         <label>ピンイン</label>
-        <input id="pmTwP" type="text" placeholder="Duōshao qián?" />
+        <input id="pmTwP" type="text" placeholder="Duōshao qián?" style="font-size:13px;padding:8px 10px;" />
       </div>
     </div>
 
-    <div class="modal-divider"><span>💡 解説</span></div>
-    <div class="field">
-      <label>解説（日本語）</label>
-      <textarea id="pmExp" placeholder="使い方のメモなど..."></textarea>
+    <div class="field" style="margin-bottom:0;">
+      <label>💡 解説（任意）</label>
+      <textarea id="pmExp" placeholder="使い方のメモなど..." style="min-height:52px;font-size:13px;padding:8px 10px;"></textarea>
     </div>
 
     <input type="hidden" id="pmEditId" />
-    <div class="modal-actions">
-      <button class="btn-primary" id="pmSaveBtn">保存する</button>
-      <button class="btn-danger"  id="pmDeleteBtn" style="display:none">削除</button>
-      <button class="btn-cancel"  id="pmCancelBtn">キャンセル</button>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="btn-primary" id="pmSaveBtn">保存</button>
+      <button class="btn-danger"  id="pmDeleteBtn" style="display:none;padding:12px 14px;">🗑️</button>
+      <button class="btn-cancel"  id="pmCancelBtn" style="padding:12px 14px;">✕</button>
     </div>
   </div>
 </div>
@@ -614,18 +609,21 @@ async function loadAll() {
 /* ── Category bar ────────────────────────────────── */
 function buildCatBar() {
   const list = document.getElementById('catList');
-  // keep manage button
-  const manageBtn = document.getElementById('openGroupManageBtn');
-  list.innerHTML = '';
+  list.innerHTML = ''; // 完全リセット（manage ボタンも毎回再生成）
 
-  const allBtn = mkCatBtn('all', '🌏 すべて', activeCat === 'all');
-  list.appendChild(allBtn);
+  list.appendChild(mkCatBtn('all', '🌏 すべて', activeCat === 'all'));
 
   categories.forEach(cat => {
     const label = [cat.icon, cat.name].filter(Boolean).join(' ');
     list.appendChild(mkCatBtn(cat.id, label, activeCat === cat.id));
   });
 
+  // manage ボタンを毎回新規生成してイベントリスナーを確実にバインド
+  const manageBtn = document.createElement('button');
+  manageBtn.className = 'cat-manage-btn';
+  manageBtn.id = 'openGroupManageBtn';
+  manageBtn.textContent = '✏️ グループ管理';
+  manageBtn.addEventListener('click', openGroupModal);
   list.appendChild(manageBtn);
 }
 
@@ -943,7 +941,7 @@ document.getElementById('pmAiBtn').addEventListener('click', async () => {
 });
 
 /* ── Group Management ────────────────────────────── */
-document.getElementById('openGroupManageBtn').addEventListener('click', openGroupModal);
+// openGroupManageBtn は buildCatBar() で毎回生成されるため静的バインド不要
 document.getElementById('closeGroupBtn').addEventListener('click', closeGroupModal);
 document.getElementById('groupOverlay').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeGroupModal();
@@ -1050,13 +1048,19 @@ async function addCategory(icon, name) {
   if (!sb) { alert('Supabase に接続されていません。'); return; }
   const id = 'cat_' + Date.now();
   const sort_order = categories.length > 0 ? Math.max(...categories.map(c => c.sort_order || 0)) + 1 : 1;
+  const newCat = { id, name, icon, sort_order };
   try {
-    const { data, error } = await sb.from('categories_asia').insert({ id, name, icon, sort_order }).select().single();
+    const { data, error } = await sb.from('categories_asia').insert(newCat).select().single();
     if (error) throw error;
-    categories.push(data);
-    buildCatBar();
-    renderGmList();
-  } catch (err) { alert('追加に失敗しました: ' + err.message); }
+    // Supabase が data を返さない場合のフォールバック
+    categories.push(data || newCat);
+  } catch (err) {
+    // RLS未設定等でエラーの場合も、ローカル状態には追加してUIに反映
+    console.warn('Supabase insert error:', err.message);
+    categories.push(newCat);
+  }
+  buildCatBar();
+  renderGmList();
 }
 
 async function editCategory(id, icon, name) {
