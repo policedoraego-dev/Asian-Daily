@@ -588,37 +588,58 @@ async function loadAll() {
   if (!sb) { setLoading(false); showError('Supabase に接続されていません。⚙️ 接続 ボタンから設定してください。'); return; }
   setLoading(true); hideError();
   try {
-    // ── Categories ──
-    // まず localStorage から即時復元（リロード後もUIが崩れない）
+    // ── Categories（マージ戦略） ──
+    // localStorage を先に復元して画面を即時表示
     const localCats = loadCatsLocal();
     if (localCats.length > 0) {
       categories = localCats;
-      buildCatBar(); // 先に表示しておく
+      buildCatBar();
     }
 
-    // Supabase からも取得を試みる
-    const { data: cats, error: cErr } = await sb.from('categories_asia').select('*').order('sort_order');
-    if (!cErr && cats && cats.length > 0) {
-      // Supabase が正常 → Supabase データを正とする
-      categories = cats;
-      saveCatsLocal(); // localStorage を上書き同期
-    } else if (!cErr && (!cats || cats.length === 0)) {
-      // Supabase は空 → localStorage のデータを Supabase へ書き戻す
-      if (localCats.length > 0) {
-        // localStorage のグループを Supabase へ同期（失敗しても無視）
-        sb.from('categories_asia')
-          .upsert(localCats, { onConflict: 'id', ignoreDuplicates: true })
-          .then(({ error }) => { if (error) console.warn('category sync:', error.message); });
+    // Supabase からも取得
+    const { data: sbCats, error: cErr } = await sb.from('categories_asia').select('*').order('sort_order');
+
+    if (!cErr) {
+      const sbList    = sbCats || [];
+      const sbIds     = new Set(sbList.map(c => c.id));
+      const localIds  = new Set(localCats.map(c => c.id));
+
+      // ① Supabase にあるが localStorage にない → Supabase が他端末で追加したもの
+      // ② localStorage にあるが Supabase にない → この端末で追加・未同期
+      const localOnly = localCats.filter(c => !sbIds.has(c.id));
+      const sbOnly    = sbList.filter(c => !localIds.has(c.id));
+
+      // マージ：重複なしで結合し sort_order でソート
+      const merged = [
+        ...sbList,          // Supabase 側（名前変更などを優先）
+        ...localOnly        // ローカル未同期分を追加
+      ].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+      // 初回 & 両方空 → デフォルト投入
+      if (merged.length === 0) {
+        categories = DEFAULT_CATEGORIES;
       } else {
-        // 完全に初回 → デフォルトを投入
-        const { data: seeded } = await sb.from('categories_asia')
+        categories = merged;
+      }
+
+      saveCatsLocal(); // マージ結果を localStorage に保存
+
+      // ローカルにしかないグループを Supabase へ書き戻す（バックグラウンド）
+      if (localOnly.length > 0) {
+        sb.from('categories_asia')
+          .upsert(localOnly, { onConflict: 'id', ignoreDuplicates: true })
+          .then(({ error }) => {
+            if (error) console.warn('cat sync to SB:', error.message);
+          });
+      }
+      // 完全初回はデフォルトも Supabase へ
+      if (merged.length === 0) {
+        sb.from('categories_asia')
           .upsert(DEFAULT_CATEGORIES, { onConflict: 'id', ignoreDuplicates: true })
-          .select();
-        categories = seeded || DEFAULT_CATEGORIES;
-        saveCatsLocal();
+          .then(() => {});
       }
     }
-    // cErr がある場合はlocalStorageデータをそのまま使う（上で復元済み）
+    // cErr の場合は localCats をそのまま使用（上で buildCatBar 済み）
 
     // ── Phrases ──
     const { data: phrases, error: pErr } = await sb.from('phrases_asia').select('*').order('created_at', { ascending: false });
